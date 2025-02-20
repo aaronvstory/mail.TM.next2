@@ -1,0 +1,19 @@
+2025-02-20 13:29:57,867 - INFO - Starting new session
+2025-02-20 13:30:09,281 - INFO - patching driver executable C:\Users\d0nbx\appdata\roaming\undetected_chromedriver\undetected_chromedriver.exe
+2025-02-20 13:30:10,520 - INFO - No valid cookies file to backup
+2025-02-20 13:30:58,270 - INFO - Created manual login cookies backup: manual_login_20250220_133058.pkl
+2025-02-20 13:30:58,270 - INFO - Cookies saved successfully
+2025-02-20 13:31:23,425 - INFO - Login successful!
+2025-02-20 13:31:28,269 - INFO - Created cookies backup: ficookies_Ima_Rowe_irowe25857outlookcom_20250220_133128.pkl
+2025-02-20 13:31:28,269 - INFO - Cookies saved successfully
+2025-02-20 13:31:28,274 - INFO - Starting order collection...
+2025-02-20 13:31:45,333 - INFO - Reached end of order list
+2025-02-20 13:32:20,055 - INFO - Clicked 'Contact support' for order: 6d38e3
+2025-02-20 13:32:33,208 - INFO - Clicked 'Contact support' for order: ea0ebb
+2025-02-20 13:32:45,100 - INFO - Clicked 'Contact support' for order: 1a3201
+2025-02-20 13:33:22,912 - INFO - Starting order collection...
+2025-02-20 13:33:40,307 - INFO - Reached end of order list
+2025-02-20 13:34:16,174 - INFO - Clicked 'Contact support' for order: 6d38e3
+2025-02-20 13:34:29,000 - INFO - Clicked 'Contact support' for order: ea0ebb
+2025-02-20 13:34:33,270 - INFO - End of session
+2025-02-20 13:34:33,270 - INFO - Starting new session
