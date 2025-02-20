@@ -46,10 +46,13 @@ export interface MailTmError {
 }
 
 async function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function retryOperation<T>(operation: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  retries = MAX_RETRIES
+): Promise<T> {
   let lastError: Error | null = null;
 
   for (let i = 0; i < retries; i++) {
@@ -219,17 +222,25 @@ export async function loginMailTm(address: string, password: string) {
 
 export async function logout() {
   if (typeof window !== "undefined") {
-    document.cookie = "mail_tm_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict; Secure";
-    document.cookie = "mail_tm_account=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict; Secure";
+    document.cookie =
+      "mail_tm_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict; Secure";
+    document.cookie =
+      "mail_tm_account=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict; Secure";
   }
 }
 
-export async function getMessages(page = 1, itemsPerPage = 20): Promise<{ messages: Message[]; total: number }> {
+export async function getMessages(
+  page = 1,
+  itemsPerPage = 20
+): Promise<{ messages: Message[]; total: number }> {
   try {
     const response = await retryOperation(() =>
-      fetch(`${MAIL_TM_API}/messages?page=${page}&itemsPerPage=${itemsPerPage}`, {
-        headers: getAuthHeaders(),
-      })
+      fetch(
+        `${MAIL_TM_API}/messages?page=${page}&itemsPerPage=${itemsPerPage}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      )
     );
 
     if (!response.ok) {
@@ -308,12 +319,13 @@ export async function deleteMessage(id: string): Promise<void> {
 
 export async function deleteAccount(): Promise<void> {
   try {
-    const account = typeof window !== "undefined"
-      ? document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("mail_tm_account="))
-          ?.split("=")[1]
-      : null;
+    const account =
+      typeof window !== "undefined"
+        ? document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("mail_tm_account="))
+            ?.split("=")[1]
+        : null;
 
     if (!account) {
       throw new Error("No account found");

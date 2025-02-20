@@ -2,7 +2,14 @@
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Inbox, Send, Trash2, RefreshCcw, ArrowLeft, Search } from "lucide-react";
+import {
+  Inbox,
+  Send,
+  Trash2,
+  RefreshCcw,
+  ArrowLeft,
+  Search,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,11 +90,13 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
     }
 
     const lowercaseQuery = query.toLowerCase();
-    const filtered = emailsToFilter.filter(email =>
-      email.subject.toLowerCase().includes(lowercaseQuery) ||
-      email.intro.toLowerCase().includes(lowercaseQuery) ||
-      email.from.address.toLowerCase().includes(lowercaseQuery) ||
-      (email.from.name && email.from.name.toLowerCase().includes(lowercaseQuery))
+    const filtered = emailsToFilter.filter(
+      (email) =>
+        email.subject.toLowerCase().includes(lowercaseQuery) ||
+        email.intro.toLowerCase().includes(lowercaseQuery) ||
+        email.from.address.toLowerCase().includes(lowercaseQuery) ||
+        (email.from.name &&
+          email.from.name.toLowerCase().includes(lowercaseQuery))
     );
     setFilteredEmails(filtered);
   };
@@ -163,21 +172,24 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
 
   if (currentEmail) {
     return (
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4">
         <Button
           variant="ghost"
-          className="mb-4"
+          size="sm"
+          className="mb-2"
           onClick={() => setCurrentEmail(null)}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Inbox
         </Button>
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div>
-            <h1 className="text-2xl font-bold">{currentEmail.subject}</h1>
-            <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+            <h1 className="text-xl font-bold">{currentEmail.subject}</h1>
+            <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
               <p>From: {formatSender(currentEmail.from)}</p>
-              <p>To: {currentEmail.to.map(to => formatSender(to)).join(", ")}</p>
+              <p>
+                To: {currentEmail.to.map((to) => formatSender(to)).join(", ")}
+              </p>
               <p>
                 {new Date(currentEmail.createdAt).toLocaleString(undefined, {
                   dateStyle: "full",
@@ -187,7 +199,7 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
             </div>
           </div>
           <Separator />
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="prose prose-sm dark:prose-invert max-w-none email-content">
             {currentEmail.html ? (
               <div
                 dangerouslySetInnerHTML={{ __html: currentEmail.html }}
@@ -206,7 +218,7 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-2 border-b">
         <AccountSwitcher />
         <div className="flex items-center space-x-2">
           <div className="relative w-64">
@@ -215,81 +227,99 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
               placeholder="Search emails..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
+              className="pl-8 h-8"
             />
           </div>
-          <Button variant="outline" onClick={fetchEmails} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchEmails}
+            disabled={loading}
+          >
             <RefreshCcw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
         </div>
       </div>
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-2">
         <Tabs defaultValue="inbox" className="h-full">
-          <TabsList className="grid w-[400px] grid-cols-3">
-            <TabsTrigger value="inbox">
-              <Inbox className="h-4 w-4 mr-2" />
+          <TabsList className="grid w-[300px] grid-cols-3">
+            <TabsTrigger value="inbox" className="text-xs">
+              <Inbox className="h-3 w-3 mr-1" />
               Inbox
             </TabsTrigger>
-            <TabsTrigger value="sent">
-              <Send className="h-4 w-4 mr-2" />
+            <TabsTrigger value="sent" className="text-xs">
+              <Send className="h-3 w-3 mr-1" />
               Sent
             </TabsTrigger>
-            <TabsTrigger value="trash">
-              <Trash2 className="h-4 w-4 mr-2" />
+            <TabsTrigger value="trash" className="text-xs">
+              <Trash2 className="h-3 w-3 mr-1" />
               Trash
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="inbox" className="h-full">
+          <TabsContent value="inbox" className="h-[calc(100%-40px)]">
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <p>Loading emails...</p>
+                <p className="text-sm">Loading emails...</p>
               </div>
             ) : filteredEmails.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 {searchQuery ? (
                   <>
-                    <h3 className="text-xl font-semibold mb-2">No matching emails</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="text-base font-semibold mb-1">
+                      No matching emails
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
                       Try different search terms
                     </p>
                   </>
                 ) : (
                   <>
-                    <h3 className="text-xl font-semibold mb-2">No emails yet</h3>
-                    <p className="text-muted-foreground">
+                    <h3 className="text-base font-semibold mb-1">
+                      No emails yet
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
                       Your temporary email is ready to receive messages
                     </p>
                   </>
                 )}
-                <Button variant="outline" className="mt-4" onClick={fetchEmails}>
-                  <RefreshCcw className="h-4 w-4 mr-2" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={fetchEmails}
+                >
+                  <RefreshCcw className="h-3 w-3 mr-1" />
                   Check for new emails
                 </Button>
               </div>
             ) : (
-              <ScrollArea className="h-[calc(100vh-12rem)]">
-                <div className="space-y-4">
+              <ScrollArea className="h-full pr-4">
+                <div className="space-y-2">
                   {filteredEmails.map((email) => (
                     <Card
                       key={email.id}
-                      className={`cursor-pointer hover:bg-muted/50 ${
+                      className={`email-list-card cursor-pointer hover:bg-muted/50 ${
                         !email.seen ? "border-l-4 border-l-primary" : ""
                       }`}
                       onClick={() => handleEmailClick(email)}
                     >
-                      <CardHeader>
-                        <CardTitle className={`text-base ${!email.seen ? "font-bold" : ""}`}>
+                      <CardHeader className="p-3">
+                        <CardTitle
+                          className={`email-subject ${
+                            !email.seen ? "font-bold" : ""
+                          }`}
+                        >
                           {email.subject}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="email-meta text-muted-foreground">
                           From: {formatSender(email.from)}
                         </p>
                       </CardHeader>
-                      <CardContent>
-                        <p className="text-sm">{email.intro}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
+                      <CardContent className="p-3 pt-0">
+                        <p className="email-intro">{email.intro}</p>
+                        <p className="email-meta text-muted-foreground mt-1">
                           {new Date(email.createdAt).toLocaleString()}
                         </p>
                       </CardContent>
@@ -301,12 +331,14 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
           </TabsContent>
           <TabsContent value="sent">
             <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Sent emails will appear here</p>
+              <p className="text-sm text-muted-foreground">
+                Sent emails will appear here
+              </p>
             </div>
           </TabsContent>
           <TabsContent value="trash">
             <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Deleted emails will appear here
               </p>
             </div>

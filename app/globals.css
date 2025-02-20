@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+.email-list-card {
+  font-size: 0.875rem;
+}
+
+.email-list-card .email-subject {
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+
+.email-list-card .email-intro {
+  font-size: 0.8125rem;
+  line-height: 1.15rem;
+}
+
+.email-list-card .email-meta {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.email-content {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -57,4 +81,3 @@
     @apply bg-background text-foreground;
   }
 }
-

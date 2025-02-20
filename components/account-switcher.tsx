@@ -28,7 +28,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { loginMailTm } from "@/lib/mail-tm/client";
 
@@ -40,7 +44,9 @@ interface Account {
 
 export function AccountSwitcher() {
   const [accounts, setAccounts] = React.useState<Account[]>([]);
-  const [selectedAccount, setSelectedAccount] = React.useState<Account | null>(null);
+  const [selectedAccount, setSelectedAccount] = React.useState<Account | null>(
+    null
+  );
   const [open, setOpen] = React.useState(false);
   const [showNewAccountDialog, setShowNewAccountDialog] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -55,7 +61,9 @@ export function AccountSwitcher() {
         .find((row) => row.startsWith("mail_tm_accounts="));
       if (accountsCookie) {
         try {
-          const accounts = JSON.parse(decodeURIComponent(accountsCookie.split("=")[1]));
+          const accounts = JSON.parse(
+            decodeURIComponent(accountsCookie.split("=")[1])
+          );
           setAccounts(accounts);
           // Set the current account as selected
           const currentToken = document.cookie
@@ -63,7 +71,7 @@ export function AccountSwitcher() {
             .find((row) => row.startsWith("mail_tm_token="))
             ?.split("=")[1];
           if (currentToken) {
-            const current = accounts.find(acc => acc.token === currentToken);
+            const current = accounts.find((acc) => acc.token === currentToken);
             if (current) setSelectedAccount(current);
           }
         } catch (e) {
@@ -76,7 +84,9 @@ export function AccountSwitcher() {
 
   const saveAccounts = (newAccounts: Account[]) => {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = `mail_tm_accounts=${JSON.stringify(newAccounts)}; path=/; expires=${expires}; SameSite=Strict; Secure`;
+    document.cookie = `mail_tm_accounts=${JSON.stringify(
+      newAccounts
+    )}; path=/; expires=${expires}; SameSite=Strict; Secure`;
   };
 
   const handleAddAccount = async () => {
@@ -173,8 +183,8 @@ export function AccountSwitcher() {
                 <DialogTrigger asChild>
                   <CommandItem
                     onSelect={() => {
-                      setOpen(false)
-                      setShowNewAccountDialog(true)
+                      setOpen(false);
+                      setShowNewAccountDialog(true);
                     }}
                   >
                     <PlusCircledIcon className="mr-2 h-5 w-5" />
@@ -214,7 +224,10 @@ export function AccountSwitcher() {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setShowNewAccountDialog(false)}>
+          <Button
+            variant="outline"
+            onClick={() => setShowNewAccountDialog(false)}
+          >
             Cancel
           </Button>
           <Button onClick={handleAddAccount} disabled={isLoading}>
@@ -225,4 +238,3 @@ export function AccountSwitcher() {
     </Dialog>
   );
 }
-
