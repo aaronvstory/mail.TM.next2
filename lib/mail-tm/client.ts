@@ -1,6 +1,14 @@
 const MAIL_TM_API = "https://api.mail.tm";
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
+const RETRY_DELAY = 1000;
+
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
+
+const supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export interface Domain {
   id: string;
@@ -35,6 +43,8 @@ export interface Message {
   downloadUrl: string;
   createdAt: string;
   updatedAt: string;
+  text?: string;
+  html?: string;
 }
 
 export interface MailTmError {
@@ -67,6 +77,42 @@ async function retryOperation<T>(
   }
 
   throw lastError;
+}
+
+async function storeEmailInSupabase(email: Message, accountEmail: string) {
+  try {
+    const { data: existingEmail } = await supabase
+      .from('emails')
+      .select()
+      .eq('message_id', email.id)
+      .single();
+
+    if (!existingEmail) {
+      const { error } = await supabase.from('emails').insert({
+        message_id: email.id,
+        account_email: accountEmail,
+        from_address: email.from.address,
+        from_name: email.from.name,
+        to_addresses: email.to.map(to => ({ address: to.address, name: to.name })),
+        subject: email.subject,
+        intro: email.intro,
+        text_content: email.text,
+        html_content: email.html,
+        seen: email.seen,
+        is_deleted: email.isDeleted,
+        has_attachments: email.hasAttachments,
+        size: email.size,
+        created_at: email.createdAt,
+        updated_at: email.updatedAt,
+      });
+
+      if (error) {
+        console.error('Error storing email in Supabase:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking/storing email in Supabase:', error);
+  }
 }
 
 function getAuthHeaders() {
@@ -231,9 +277,11 @@ export async function logout() {
 
 export async function getMessages(
   page = 1,
-  itemsPerPage = 20
+  itemsPerPage = 20,
+  includeStored = true
 ): Promise<{ messages: Message[]; total: number }> {
   try {
+    // Get messages from Mail.tm
     const response = await retryOperation(() =>
       fetch(
         `${MAIL_TM_API}/messages?page=${page}&itemsPerPage=${itemsPerPage}`,
@@ -248,9 +296,87 @@ export async function getMessages(
     }
 
     const data = await response.json();
+    const mailTmMessages = data["hydra:member"];
+
+    if (!includeStored) {
+      return {
+        messages: mailTmMessages,
+        total: data["hydra:totalItems"],
+      };
+    }
+
+    // Get the current account email
+    const accountCookie = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("mail_tm_account="));
+
+    if (!accountCookie) {
+      return {
+        messages: mailTmMessages,
+        total: data["hydra:totalItems"],
+      };
+    }
+
+    const accountData = JSON.parse(decodeURIComponent(accountCookie.split("=")[1]));
+    const accountEmail = accountData.email;
+
+    // Get messages from Supabase
+    const { data: storedEmails, error } = await supabase
+      .from('emails')
+      .select('*')
+      .eq('account_email', accountEmail)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching stored emails:', error);
+      return {
+        messages: mailTmMessages,
+        total: data["hydra:totalItems"],
+      };
+    }
+
+    // Store new messages in Supabase
+    for (const email of mailTmMessages) {
+      await storeEmailInSupabase(email, accountEmail);
+    }
+
+    // Convert stored emails to Message format
+    const storedMessages: Message[] = storedEmails.map(email => ({
+      id: email.message_id,
+      accountId: email.account_email,
+      msgid: email.message_id,
+      from: {
+        address: email.from_address,
+        name: email.from_name,
+      },
+      to: email.to_addresses,
+      subject: email.subject,
+      intro: email.intro,
+      text: email.text_content,
+      html: email.html_content,
+      seen: email.seen,
+      isDeleted: email.is_deleted,
+      hasAttachments: email.has_attachments,
+      size: email.size,
+      downloadUrl: '', // No download URL for stored messages
+      createdAt: email.created_at,
+      updatedAt: email.updated_at,
+    }));
+
+    // Merge and deduplicate messages
+    const allMessages = [...mailTmMessages];
+    for (const storedMsg of storedMessages) {
+      if (!allMessages.some(msg => msg.id === storedMsg.id)) {
+        allMessages.push(storedMsg);
+      }
+    }
+
+    // Sort by date
+    allMessages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return {
-      messages: data["hydra:member"],
-      total: data["hydra:totalItems"],
+      messages: allMessages,
+      total: allMessages.length,
     };
   } catch (error) {
     console.error("Error fetching messages:", error);
@@ -260,17 +386,64 @@ export async function getMessages(
 
 export async function getMessage(id: string): Promise<Message> {
   try {
-    const response = await retryOperation(() =>
-      fetch(`${MAIL_TM_API}/messages/${id}`, {
-        headers: getAuthHeaders(),
-      })
-    );
+    // Try Mail.tm first
+    try {
+      const response = await retryOperation(() =>
+        fetch(`${MAIL_TM_API}/messages/${id}`, {
+          headers: getAuthHeaders(),
+        })
+      );
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch message");
+      if (response.ok) {
+        const message = await response.json();
+
+        // Store in Supabase for permanence
+        const accountCookie = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("mail_tm_account="));
+
+        if (accountCookie) {
+          const accountData = JSON.parse(decodeURIComponent(accountCookie.split("=")[1]));
+          await storeEmailInSupabase(message, accountData.email);
+        }
+
+        return message;
+      }
+    } catch (error) {
+      console.error("Failed to fetch from Mail.tm, trying Supabase:", error);
     }
 
-    return await response.json();
+    // If Mail.tm fails or message not found, try Supabase
+    const { data: email, error } = await supabase
+      .from('emails')
+      .select('*')
+      .eq('message_id', id)
+      .single();
+
+    if (error) throw error;
+    if (!email) throw new Error("Message not found");
+
+    return {
+      id: email.message_id,
+      accountId: email.account_email,
+      msgid: email.message_id,
+      from: {
+        address: email.from_address,
+        name: email.from_name,
+      },
+      to: email.to_addresses,
+      subject: email.subject,
+      intro: email.intro,
+      text: email.text_content,
+      html: email.html_content,
+      seen: email.seen,
+      isDeleted: email.is_deleted,
+      hasAttachments: email.has_attachments,
+      size: email.size,
+      downloadUrl: '', // No download URL for stored messages
+      createdAt: email.created_at,
+      updatedAt: email.updated_at,
+    };
   } catch (error) {
     console.error("Error fetching message:", error);
     throw error;
@@ -279,19 +452,34 @@ export async function getMessage(id: string): Promise<Message> {
 
 export async function markMessageAsRead(id: string): Promise<void> {
   try {
-    const response = await retryOperation(() =>
-      fetch(`${MAIL_TM_API}/messages/${id}`, {
-        method: "PATCH",
-        headers: {
-          ...getAuthHeaders(),
-          "Content-Type": "application/merge-patch+json",
-        },
-        body: JSON.stringify({ seen: true }),
-      })
-    );
+    // Try to mark as read in Mail.tm
+    try {
+      const response = await retryOperation(() =>
+        fetch(`${MAIL_TM_API}/messages/${id}`, {
+          method: "PATCH",
+          headers: {
+            ...getAuthHeaders(),
+            "Content-Type": "application/merge-patch+json",
+          },
+          body: JSON.stringify({ seen: true }),
+        })
+      );
 
-    if (!response.ok) {
-      throw new Error("Failed to mark message as read");
+      if (!response.ok) {
+        throw new Error("Failed to mark message as read in Mail.tm");
+      }
+    } catch (error) {
+      console.error("Failed to mark as read in Mail.tm:", error);
+    }
+
+    // Also update in Supabase
+    const { error } = await supabase
+      .from('emails')
+      .update({ seen: true })
+      .eq('message_id', id);
+
+    if (error) {
+      console.error("Failed to mark as read in Supabase:", error);
     }
   } catch (error) {
     console.error("Error marking message as read:", error);
@@ -301,15 +489,31 @@ export async function markMessageAsRead(id: string): Promise<void> {
 
 export async function deleteMessage(id: string): Promise<void> {
   try {
-    const response = await retryOperation(() =>
-      fetch(`${MAIL_TM_API}/messages/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      })
-    );
+    // Try to delete from Mail.tm
+    try {
+      const response = await retryOperation(() =>
+        fetch(`${MAIL_TM_API}/messages/${id}`, {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        })
+      );
 
-    if (!response.ok) {
-      throw new Error("Failed to delete message");
+      if (!response.ok) {
+        console.error("Failed to delete from Mail.tm");
+      }
+    } catch (error) {
+      console.error("Error deleting from Mail.tm:", error);
+    }
+
+    // Mark as deleted in Supabase (we keep the record but mark it as deleted)
+    const { error } = await supabase
+      .from('emails')
+      .update({ is_deleted: true })
+      .eq('message_id', id);
+
+    if (error) {
+      console.error("Failed to mark as deleted in Supabase:", error);
+      throw error;
     }
   } catch (error) {
     console.error("Error deleting message:", error);
@@ -331,19 +535,35 @@ export async function deleteAccount(): Promise<void> {
       throw new Error("No account found");
     }
 
-    const { id } = JSON.parse(account);
-    const response = await retryOperation(() =>
-      fetch(`${MAIL_TM_API}/accounts/${id}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      })
-    );
+    const { id, email } = JSON.parse(account);
 
-    if (!response.ok) {
-      throw new Error("Failed to delete account");
+    // Delete from Mail.tm
+    try {
+      const response = await retryOperation(() =>
+        fetch(`${MAIL_TM_API}/accounts/${id}`, {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        })
+      );
+
+      if (!response.ok) {
+        console.error("Failed to delete account from Mail.tm");
+      }
+    } catch (error) {
+      console.error("Error deleting account from Mail.tm:", error);
     }
 
-    // Clear cookies after successful deletion
+    // Mark all emails as deleted in Supabase
+    const { error } = await supabase
+      .from('emails')
+      .update({ is_deleted: true })
+      .eq('account_email', email);
+
+    if (error) {
+      console.error("Failed to mark emails as deleted in Supabase:", error);
+    }
+
+    // Clear cookies after deletion
     logout();
   } catch (error) {
     console.error("Error deleting account:", error);
