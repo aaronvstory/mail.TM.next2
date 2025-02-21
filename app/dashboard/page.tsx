@@ -1,22 +1,57 @@
 "use client";
 
-import { EmailLayout, type EmailLayoutHandle } from "@/components/email-layout";
+import { useEffect, useState } from "react";
+import { getMessages, getMessage, type Message } from "@/lib/mail-tm/client";
 import { Sidebar } from "@/components/sidebar";
-import { useRef } from "react";
+import { EmailLayout } from "@/components/email-layout";
 
 export default function DashboardPage() {
-  const emailLayoutRef = useRef<EmailLayoutHandle>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [totalMessages, setTotalMessages] = useState(0);
+  const [selectedEmail, setSelectedEmail] = useState<Message | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleRefresh = () => {
-    emailLayoutRef.current?.fetchEmails();
+  const fetchEmails = async () => {
+    try {
+      setIsLoading(true);
+      const { messages: fetchedMessages, total } = await getMessages(
+        currentPage
+      );
+      setMessages(fetchedMessages);
+      setTotalMessages(total);
+    } catch (error) {
+      console.error("Failed to fetch emails:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmails();
+  }, [currentPage]);
+
+  const handleEmailClick = async (email: Message) => {
+    try {
+      const fullEmail = await getMessage(email.id);
+      setSelectedEmail(fullEmail);
+    } catch (error) {
+      console.error("Failed to fetch email details:", error);
+    }
   };
 
   return (
     <div className="flex h-screen">
-      <Sidebar onRefresh={handleRefresh} />
-      <main className="flex-1">
-        <EmailLayout ref={emailLayoutRef} />
-      </main>
+      <Sidebar onRefresh={fetchEmails} />
+      <EmailLayout
+        emails={messages}
+        selectedEmail={selectedEmail}
+        onEmailClick={handleEmailClick}
+        isLoading={isLoading}
+        totalEmails={totalMessages}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

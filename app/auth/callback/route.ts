@@ -5,4 +5,3 @@ export async function GET(request: Request) {
   // We'll implement proper auth callback handling when we add Supabase back
   return NextResponse.redirect(new URL("/dashboard", request.url));
 }
-
