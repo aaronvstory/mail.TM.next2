@@ -13,7 +13,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createMailTmAccount, loginMailTm, getAvailableDomains } from "@/lib/mail-tm/client";
+import {
+  createMailTmAccount,
+  loginMailTm,
+  getAvailableDomains,
+} from "@/lib/mail-tm/client";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -57,7 +61,8 @@ export function AuthForm({ type }: AuthFormProps) {
         toast.success("Account created successfully!");
       }
 
-      const email = type === "register" ? `${username}@${availableDomain}` : username;
+      const email =
+        type === "register" ? `${username}@${availableDomain}` : username;
       await loginMailTm(email, password);
 
       router.push("/dashboard");
@@ -78,11 +83,15 @@ export function AuthForm({ type }: AuthFormProps) {
     <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>{type === "login" ? "Sign In" : "Create Account"}</CardTitle>
+          <CardTitle>
+            {type === "login" ? "Sign In" : "Create Account"}
+          </CardTitle>
           <CardDescription>
             {type === "login"
               ? "Access your temporary email account"
-              : `Create a new email account at ${availableDomain || "loading domain..."}`}
+              : `Create a new email account at ${
+                  availableDomain || "loading domain..."
+                }`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -94,7 +103,9 @@ export function AuthForm({ type }: AuthFormProps) {
               <Input
                 id="email"
                 type="text"
-                placeholder={type === "login" ? "email@example.com" : "username"}
+                placeholder={
+                  type === "login" ? "email@example.com" : "username"
+                }
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className={type === "register" ? "rounded-r-none" : ""}
@@ -118,7 +129,11 @@ export function AuthForm({ type }: AuthFormProps) {
             />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Please wait..." : type === "login" ? "Sign In" : "Create Account"}
+            {isLoading
+              ? "Please wait..."
+              : type === "login"
+              ? "Sign In"
+              : "Create Account"}
           </Button>
         </CardContent>
       </Card>

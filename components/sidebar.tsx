@@ -41,13 +41,15 @@ export function Sidebar({ onRefresh }: { onRefresh?: () => void }) {
       .find((row) => row.startsWith("mail_tm_accounts="));
 
     if (accounts) {
-And another really useful stretch goal could be if the user could make custom categories based on, let's say, a keyword. And the client would then sort those emails into those categories and they would show how many there are for that category.      const accountsCookie = document.cookie
+      const accountsCookie = document.cookie
         .split("; ")
         .find((row) => row.startsWith("mail_tm_account="));
       let primaryEmail = "unknown";
       if (accountsCookie) {
         try {
-          const accountData = JSON.parse(decodeURIComponent(accountsCookie.split("=")[1]));
+          const accountData = JSON.parse(
+            decodeURIComponent(accountsCookie.split("=")[1])
+          );
           primaryEmail = accountData.email.split("@")[0];
         } catch (e) {
           console.error("Error parsing account data:", e);
@@ -57,7 +59,6 @@ And another really useful stretch goal could be if the user could make custom ca
       const now = new Date();
       const dateStr = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
       const fileName = `mail-tm-accounts_${primaryEmail}_${dateStr}.json`;
-
       const accountsData = decodeURIComponent(accounts.split("=")[1]);
       const blob = new Blob([accountsData], { type: "application/json" });
       const url = URL.createObjectURL(blob);
