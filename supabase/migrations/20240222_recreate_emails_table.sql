@@ -1,3 +1,7 @@
+-- Drop existing table if it exists
+drop table if exists emails cascade;
+
+-- Create the table
 create table emails (
   message_id text primary key,
   account_email text not null,

@@ -41,12 +41,29 @@ export function Sidebar({ onRefresh }: { onRefresh?: () => void }) {
       .find((row) => row.startsWith("mail_tm_accounts="));
 
     if (accounts) {
+      const accountsCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("mail_tm_account="));
+      let primaryEmail = "unknown";
+      if (accountsCookie) {
+        try {
+          const accountData = JSON.parse(decodeURIComponent(accountsCookie.split("=")[1]));
+          primaryEmail = accountData.email.split("@")[0];
+        } catch (e) {
+          console.error("Error parsing account data:", e);
+        }
+      }
+
+      const now = new Date();
+      const dateStr = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const fileName = `mail-tm-accounts_${primaryEmail}_${dateStr}.json`;
+
       const accountsData = decodeURIComponent(accounts.split("=")[1]);
       const blob = new Blob([accountsData], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "mail-tm-accounts.json";
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

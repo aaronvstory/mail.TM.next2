@@ -1,0 +1,3 @@
+message_id,account_email,from_address,from_name,to_addresses,subject,intro,text_content,html_content,seen,is_deleted,has_attachments,size,created_at,updated_at
+example_id_1,user@mail.tm,sender@example.com,John Doe,"[{""address"": ""user@mail.tm"", ""name"": ""User""}]",Example Subject,Email intro text,Plain text content,<p>HTML content</p>,false,false,false,1024,2024-02-21T12:00:00Z,2024-02-21T12:00:00Z
+example_id_2,user@mail.tm,another@example.com,Jane Smith,"[{""address"": ""user@mail.tm"", ""name"": ""User""}]",Another Example,Another intro,Simple text,<p>More content</p>,true,false,false,512,2024-02-21T12:01:00Z,2024-02-21T12:01:00Z
