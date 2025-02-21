@@ -45,12 +45,13 @@ export interface MailTmError {
 }
 
 function getAuthHeaders() {
-  const token = typeof window !== 'undefined' 
-    ? document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("mail_tm_token="))
-        ?.split("=")[1]
-    : null;
+  const token =
+    typeof window !== "undefined"
+      ? document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("mail_tm_token="))
+          ?.split("=")[1]
+      : null;
   return token
     ? {
         Authorization: `Bearer ${token}`,
@@ -62,12 +63,13 @@ function getAuthHeaders() {
 }
 
 export async function checkAuth(): Promise<boolean> {
-  const token = typeof window !== 'undefined'
-    ? document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("mail_tm_token="))
-        ?.split("=")[1]
-    : null;
+  const token =
+    typeof window !== "undefined"
+      ? document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("mail_tm_token="))
+          ?.split("=")[1]
+      : null;
   return !!token;
 }
 
@@ -121,13 +123,18 @@ export async function loginMailTm(address: string, password: string) {
 }
 
 export async function logout() {
-  if (typeof window !== 'undefined') {
-    document.cookie = "mail_tm_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    document.cookie = "mail_tm_account=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  if (typeof window !== "undefined") {
+    document.cookie =
+      "mail_tm_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie =
+      "mail_tm_account=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
   }
 }
 
-export async function getMessages(page = 1, itemsPerPage = 20): Promise<{ messages: Message[], total: number }> {
+export async function getMessages(
+  page = 1,
+  itemsPerPage = 20
+): Promise<{ messages: Message[]; total: number }> {
   const response = await fetch(
     `${MAIL_TM_API}/messages?page=${page}&pageSize=${itemsPerPage}`,
     {
