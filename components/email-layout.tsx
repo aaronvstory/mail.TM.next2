@@ -2,7 +2,14 @@
 
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Inbox, Send, Trash2, RefreshCcw, ArrowLeft, Search } from "lucide-react";
+import {
+  Inbox,
+  Send,
+  Trash2,
+  RefreshCcw,
+  ArrowLeft,
+  Search,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +43,9 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
   const [filteredEmails, setFilteredEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [fullEmailContents, setFullEmailContents] = useState<Record<string, { text: string; html: string }>>({});
+  const [fullEmailContents, setFullEmailContents] = useState<
+    Record<string, { text: string; html: string }>
+  >({});
 
   const formatSender = (from: { address: string; name?: string }) => {
     if (from.name && from.name !== from.address) {
@@ -70,7 +79,7 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
       const data = await response.json();
       const fetchedEmails = data["hydra:member"];
       setEmails(fetchedEmails);
-      
+
       // Pre-fetch full content for search
       const contents: Record<string, { text: string; html: string }> = {};
       for (const email of fetchedEmails) {
@@ -81,11 +90,14 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
             html: fullEmail.html || "",
           };
         } catch (error) {
-          console.error(`Failed to fetch content for email ${email.id}:`, error);
+          console.error(
+            `Failed to fetch content for email ${email.id}:`,
+            error
+          );
         }
       }
       setFullEmailContents(contents);
-      
+
       filterEmails(fetchedEmails, searchQuery, contents);
     } catch (error) {
       console.error("Failed to fetch emails:", error);
@@ -95,11 +107,15 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
   };
 
   const stripHtml = (html: string) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const doc = new DOMParser().parseFromString(html, "text/html");
     return doc.body.textContent || "";
   };
 
-  const filterEmails = (emailsToFilter: Email[], query: string, contents: Record<string, { text: string; html: string }> = fullEmailContents) => {
+  const filterEmails = (
+    emailsToFilter: Email[],
+    query: string,
+    contents: Record<string, { text: string; html: string }> = fullEmailContents
+  ) => {
     if (!query.trim()) {
       setFilteredEmails(emailsToFilter);
       return;
@@ -115,12 +131,14 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
         stripHtml(emailContent?.html || ""),
         email.from.address,
         email.from.name || "",
-        ...email.to.map(to => `${to.name || ""} ${to.address}`),
-      ].join(" ").toLowerCase();
+        ...email.to.map((to) => `${to.name || ""} ${to.address}`),
+      ]
+        .join(" ")
+        .toLowerCase();
 
       return fullText.includes(lowercaseQuery);
     });
-    
+
     setFilteredEmails(filtered);
   };
 
@@ -156,7 +174,7 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
       markAsRead(id);
 
       // Update full content cache
-      setFullEmailContents(prev => ({
+      setFullEmailContents((prev) => ({
         ...prev,
         [id]: {
           text: fullEmail.text || "",
@@ -200,7 +218,9 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
             <h1 className="text-xl font-bold">{currentEmail.subject}</h1>
             <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
               <p>From: {formatSender(currentEmail.from)}</p>
-              <p>To: {currentEmail.to.map(to => formatSender(to)).join(", ")}</p>
+              <p>
+                To: {currentEmail.to.map((to) => formatSender(to)).join(", ")}
+              </p>
               <p>
                 {new Date(currentEmail.createdAt).toLocaleString(undefined, {
                   dateStyle: "full",
@@ -278,14 +298,18 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
               <div className="flex flex-col items-center justify-center h-full text-center">
                 {searchQuery ? (
                   <>
-                    <h3 className="text-base font-semibold mb-1">No matching emails</h3>
+                    <h3 className="text-base font-semibold mb-1">
+                      No matching emails
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       Try different search terms
                     </p>
                   </>
                 ) : (
                   <>
-                    <h3 className="text-base font-semibold mb-1">No emails yet</h3>
+                    <h3 className="text-base font-semibold mb-1">
+                      No emails yet
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       Your temporary email is ready to receive messages
                     </p>
