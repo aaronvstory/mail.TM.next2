@@ -56,23 +56,33 @@ export function AuthForm({ type }: AuthFormProps) {
         if (!availableDomain) {
           throw new Error("No domain available");
         }
-
-        await createMailTmAccount(username, password, availableDomain);
+        const account = await createMailTmAccount(
+          username,
+          password,
+          availableDomain
+        );
+        console.log("Account created:", account);
         toast.success("Account created successfully!");
+        router.push("/auth/login");
+      } else {
+        const loginData = await loginMailTm(username, password);
+        if (loginData.token) {
+          document.cookie = `mail_tm_token=${loginData.token}; path=/;`;
+          document.cookie = `mail_tm_account=${JSON.stringify({
+            id: loginData.id,
+            email: username,
+          })}; path=/;`;
+          toast.success("Logged in successfully!");
+          router.push("/dashboard");
+        }
       }
-
-      const email =
-        type === "register" ? `${username}@${availableDomain}` : username;
-      await loginMailTm(email, password);
-
-      router.push("/dashboard");
-      router.refresh();
     } catch (error) {
-      console.error("Authentication error:", error);
+      console.error(
+        type === "register" ? "Registration error:" : "Login error:",
+        error
+      );
       toast.error(
-        type === "register"
-          ? "Failed to create account. Please try a different username."
-          : "Invalid email or password"
+        error instanceof Error ? error.message : "An unexpected error occurred"
       );
     } finally {
       setIsLoading(false);
@@ -80,43 +90,28 @@ export function AuthForm({ type }: AuthFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {type === "login" ? "Sign In" : "Create Account"}
-          </CardTitle>
-          <CardDescription>
-            {type === "login"
-              ? "Access your temporary email account"
-              : `Create a new email account at ${
-                  availableDomain || "loading domain..."
-                }`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>{type === "login" ? "Login" : "Create Account"}</CardTitle>
+        <CardDescription>
+          {type === "login"
+            ? "Access your temporary email"
+            : "Create a new temporary email"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">
-              {type === "login" ? "Email Address" : "Username"}
+            <Label htmlFor="username">
+              {type === "login" ? "Email" : "Username"}
             </Label>
-            <div className="flex">
-              <Input
-                id="email"
-                type="text"
-                placeholder={
-                  type === "login" ? "email@example.com" : "username"
-                }
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={type === "register" ? "rounded-r-none" : ""}
-                required
-              />
-              {type === "register" && availableDomain && (
-                <div className="flex items-center bg-muted px-3 rounded-r-md border border-l-0 border-input">
-                  @{availableDomain}
-                </div>
-              )}
-            </div>
+            <Input
+              id="username"
+              placeholder={type === "login" ? "email@example.com" : "username"}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -130,13 +125,15 @@ export function AuthForm({ type }: AuthFormProps) {
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading
-              ? "Please wait..."
+              ? type === "login"
+                ? "Signing in..."
+                : "Creating account..."
               : type === "login"
-              ? "Sign In"
-              : "Create Account"}
+              ? "Sign in"
+              : "Create account"}
           </Button>
-        </CardContent>
-      </Card>
-    </form>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

@@ -29,8 +29,10 @@ export function Sidebar({ onRefresh }: { onRefresh?: () => void }) {
     }
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    document.cookie = "mail_tm_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "mail_tm_account=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     toast.success("Logged out successfully");
     router.push("/auth/login");
   };
