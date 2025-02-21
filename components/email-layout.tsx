@@ -4,19 +4,25 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Inbox,
-  Send,
-  Trash2,
+  Search,
   RefreshCcw,
   ArrowLeft,
-  Search,
+  DownloadCloud,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AccountSwitcher } from "./account-switcher";
 import { getMessage } from "@/lib/mail-tm/client";
+import { toast } from "sonner";
 
 interface Email {
   id: string;
@@ -201,6 +207,151 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
     fetchEmailContent(email.id);
   };
 
+  const exportEmails = async (format: "html" | "json" | "pdf" | "markdown") => {
+    try {
+      const emailsToExport =
+        filteredEmails.length > 0 ? filteredEmails : emails;
+      let content = "";
+      let mimeType = "";
+      let fileExtension = "";
+
+      switch (format) {
+        case "html":
+          content = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Exported Emails</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .email { border: 1px solid #ddd; margin: 20px 0; padding: 20px; border-radius: 8px; }
+    .subject { font-size: 1.2em; font-weight: bold; }
+    .meta { color: #666; margin: 10px 0; }
+    .content { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  ${emailsToExport
+    .map(
+      (email) => `
+    <div class="email">
+      <div class="subject">${email.subject}</div>
+      <div class="meta">
+        <div>From: ${formatSender(email.from)}</div>
+        <div>To: ${email.to.map((to) => formatSender(to)).join(", ")}</div>
+        <div>Date: ${new Date(email.createdAt).toLocaleString()}</div>
+      </div>
+      <div class="content">
+        ${email.html || email.text || email.intro}
+      </div>
+    </div>
+  `
+    )
+    .join("\n")}
+</body>
+</html>`;
+          mimeType = "text/html";
+          fileExtension = "html";
+          break;
+
+        case "json":
+          content = JSON.stringify(emailsToExport, null, 2);
+          mimeType = "application/json";
+          fileExtension = "json";
+          break;
+
+        case "markdown":
+          content = emailsToExport
+            .map(
+              (email) => `
+# ${email.subject}
+
+**From:** ${formatSender(email.from)}
+**To:** ${email.to.map((to) => formatSender(to)).join(", ")}
+**Date:** ${new Date(email.createdAt).toLocaleString()}
+
+---
+
+${email.text || email.intro}
+
+---
+`
+            )
+            .join("\n\n");
+          mimeType = "text/markdown";
+          fileExtension = "md";
+          break;
+
+        case "pdf":
+          // For PDF, we'll use the HTML version and convert it client-side
+          const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Exported Emails</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .email { border: 1px solid #ddd; margin: 20px 0; padding: 20px; }
+    .subject { font-size: 1.2em; font-weight: bold; }
+    .meta { color: #666; margin: 10px 0; }
+    .content { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  ${emailsToExport
+    .map(
+      (email) => `
+    <div class="email">
+      <div class="subject">${email.subject}</div>
+      <div class="meta">
+        <div>From: ${formatSender(email.from)}</div>
+        <div>To: ${email.to.map((to) => formatSender(to)).join(", ")}</div>
+        <div>Date: ${new Date(email.createdAt).toLocaleString()}</div>
+      </div>
+      <div class="content">
+        ${email.html || email.text || email.intro}
+      </div>
+    </div>
+  `
+    )
+    .join("\n")}
+</body>
+</html>`;
+
+          const { default: html2pdf } = await import("html2pdf.js");
+          const element = document.createElement("div");
+          element.innerHTML = htmlContent;
+          document.body.appendChild(element);
+
+          await html2pdf()
+            .from(element)
+            .save(`exported_emails_${new Date().toISOString()}.pdf`);
+          document.body.removeChild(element);
+          return;
+      }
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `emails_${timestamp}.${fileExtension}`;
+
+      // Create and download the file
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Emails exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error("Error exporting emails:", error);
+      toast.error("Failed to export emails");
+    }
+  };
+
   if (currentEmail) {
     return (
       <div className="flex-1 p-4">
@@ -260,7 +411,34 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 h-8"
             />
+            {searchQuery && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {filteredEmails.length} results
+              </span>
+            )}
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <DownloadCloud className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => exportEmails("html")}>
+                Export as HTML
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportEmails("json")}>
+                Export as JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportEmails("pdf")}>
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportEmails("markdown")}>
+                Export as Markdown
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             size="sm"
@@ -274,18 +452,10 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
       </div>
       <div className="flex-1 p-2">
         <Tabs defaultValue="inbox" className="h-full">
-          <TabsList className="grid w-[300px] grid-cols-3">
-            <TabsTrigger value="inbox" className="text-xs">
+          <TabsList className="w-[200px]">
+            <TabsTrigger value="inbox" className="w-full">
               <Inbox className="h-3 w-3 mr-1" />
               Inbox
-            </TabsTrigger>
-            <TabsTrigger value="sent" className="text-xs">
-              <Send className="h-3 w-3 mr-1" />
-              Sent
-            </TabsTrigger>
-            <TabsTrigger value="trash" className="text-xs">
-              <Trash2 className="h-3 w-3 mr-1" />
-              Trash
             </TabsTrigger>
           </TabsList>
 
@@ -359,20 +529,6 @@ export const EmailLayout = forwardRef<EmailLayoutHandle>((props, ref) => {
                 </div>
               </ScrollArea>
             )}
-          </TabsContent>
-          <TabsContent value="sent">
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm text-muted-foreground">
-                Sent emails will appear here
-              </p>
-            </div>
-          </TabsContent>
-          <TabsContent value="trash">
-            <div className="flex items-center justify-center h-full">
-              <p className="text-sm text-muted-foreground">
-                Deleted emails will appear here
-              </p>
-            </div>
           </TabsContent>
         </Tabs>
       </div>
